@@ -1,0 +1,167 @@
+import { Deck } from './deck';
+import type { Card, GameState } from './types';
+
+export class GameManager {
+    state: GameState;
+    private deck: Deck;
+
+    constructor() {
+        this.deck = new Deck();
+        this.state = {
+            phase: 'SETUP',
+            players: [],
+            deck: [],
+            dealerId: '',
+            currentPlayerIndex: -1,
+            pot: 0
+        };
+    }
+
+    addPlayer(name: string) {
+        const id = `player-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        this.state.players.push({
+            id,
+            name,
+            isDealer: false,
+            chips: 0, // Starting balance is $0.00
+            hand: [],
+            currentBet: 0,
+            insuranceBet: 0,
+            status: 'idle'
+        });
+    }
+
+    setDealer(playerId: string) {
+        this.state.players.forEach(p => p.isDealer = (p.id === playerId));
+        this.state.dealerId = playerId;
+    }
+
+    startGame() {
+        if (this.state.players.length < 3) throw new Error("Need at least 3 players");
+        if (!this.state.dealerId) throw new Error("No dealer selected");
+        this.state.phase = 'BETTING';
+        this.resetRound();
+    }
+
+    resetRound() {
+        this.deck = new Deck();
+        if (this.deck.remaining() < 20) {
+            this.deck.initialize();
+        }
+
+        this.state.players.forEach(p => {
+            p.hand = [];
+            p.currentBet = 0;
+            p.insuranceBet = 0;
+            p.status = 'betting';
+            if (p.isDealer) p.status = 'idle';
+        });
+        this.state.pot = 0;
+        this.state.phase = 'BETTING';
+    }
+
+    placeBet(playerId: string, amount: number) {
+        const player = this.state.players.find(p => p.id === playerId);
+        if (!player || player.isDealer) return;
+        player.currentBet += amount;
+    }
+
+    placeInsuranceBet(playerId: string) {
+        const player = this.state.players.find(p => p.id === playerId);
+        if (!player || player.isDealer) return;
+
+        const insuranceCost = player.currentBet / 2;
+        if (player.chips >= insuranceCost) {
+            player.insuranceBet = insuranceCost;
+            // Chips are deducted at resolution or immediately? Usually immediately in UI, but let's track it.
+            // For now, we'll deduct at resolution to keep it simple, or deduct here.
+            // Let's deduct here to match main bet logic if we were deducting main bets.
+            // But main bets aren't deducted from chips until resolution in this codebase?
+            // Checking logic... placeBet just adds to currentBet. Resolution adds/subtracts.
+            // So we just track it here.
+        }
+    }
+
+    dealInitialCards() {
+        this.state.phase = 'DEALING';
+        for (let i = 0; i < 2; i++) {
+            for (const player of this.state.players) {
+                const card = this.deck.draw();
+                if (card) {
+                    player.hand.push(card);
+                }
+            }
+        }
+    }
+
+    dealCardTo(playerId: string): Card | undefined {
+        if (this.deck.remaining() < 10) {
+            this.deck.initialize();
+        }
+
+        const card = this.deck.draw();
+        if (card) {
+            const player = this.state.players.find(p => p.id === playerId);
+            if (player) {
+                player.hand.push(card);
+            }
+        }
+        return card;
+    }
+
+    calculateHandValue(hand: Card[]): number {
+        let value = 0;
+        let aces = 0;
+        for (const card of hand) {
+            value += card.value;
+            if (card.rank === 'A') aces++;
+        }
+        while (value > 21 && aces > 0) {
+            value -= 10;
+            aces--;
+        }
+        return value;
+    }
+
+    calculateSoftHandValue(hand: Card[]): { value: number; isSoft: boolean; softValue?: number } {
+        let total = 0;
+        let aces = 0;
+
+        hand.forEach(card => {
+            if (card.rank === 'A') {
+                aces++;
+                total += 11;
+            } else if (['K', 'Q', 'J'].includes(card.rank)) {
+                total += 10;
+            } else {
+                total += parseInt(card.rank);
+            }
+        });
+
+        const isSoft = aces > 0 && total <= 21;
+        const softValue = isSoft ? total - 10 : undefined;
+
+        while (total > 21 && aces > 0) {
+            total -= 10;
+            aces--;
+        }
+
+        return { value: total, isSoft, softValue };
+    }
+
+    nextTurn() {
+        let nextIndex = this.state.currentPlayerIndex + 1;
+        while (nextIndex < this.state.players.length) {
+            const player = this.state.players[nextIndex];
+            if (!player.isDealer && player.status === 'playing') {
+                this.state.currentPlayerIndex = nextIndex;
+                return;
+            }
+            nextIndex++;
+        }
+        this.startDealerTurn();
+    }
+            dealer.status = 'playing';
+}
+    }
+}

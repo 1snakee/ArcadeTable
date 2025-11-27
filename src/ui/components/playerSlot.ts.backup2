@@ -1,0 +1,193 @@
+import type { Player, Card } from '../../logic/types';
+
+export class PlayerSlot {
+    container: HTMLElement;
+    playerId: string;
+    cardsContainer: HTMLElement;
+    chipsContainer: HTMLElement;
+    infoContainer: HTMLElement;
+
+    constructor(root: HTMLElement, player: Player, index: number, totalPlayers: number) {
+        this.playerId = player.id;
+        this.container = document.createElement('div');
+
+        const step = 100 / (totalPlayers + 1);
+        const left = step * (index + 1);
+
+        this.container.className = 'absolute bottom-40 transform -translate-x-1/2 flex flex-col items-center gap-2 transition-all duration-500';
+        this.container.style.left = `${left}%`;
+
+        this.container.innerHTML = `
+      <div class="relative w-36 h-52">
+        <!-- Hand Value (Top) -->
+        <div class="hand-value absolute -top-2 left-1/2 -translate-x-1/2 text-sm font-bold text-white opacity-0 transition-opacity z-20" id="hand-value-${player.id}">
+          <span class="hand-value-num bg-slate-800/80 px-2 py-0.5 rounded">0</span>
+        </div>
+        
+        <!-- Bust Badge -->
+        <div class="bust-badge absolute top-8 left-1/2 -translate-x-1/2 px-3 py-1 bg-red-600 text-white font-bold text-xs rounded-full opacity-0 transition-all pointer-events-none z-20" id="bust-badge-${player.id}" style="animation: shake 0.5s;"> 
+          BUST
+        </div>
+        
+        <!-- Cards Area (Center) -->
+        <div class="cards-area absolute top-4 left-1/2 -translate-x-1/2 w-full h-32 flex justify-center items-center z-10" id="cards-${player.id}">
+        </div>
+
+        <!-- Player Info Panel (Bottom) -->
+        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full glass-panel p-2 flex flex-col items-center gap-1">
+          <div class="text-sm font-bold text-white truncate max-w-full">${player.name}</div>
+          <div class="text-xs ${player.chips < 0 ? 'text-red-500' : 'text-neon-green'}">$${player.chips.toFixed(2)}</div>
+          ${player.isDealer ? '<div class="text-[10px] text-neon-pink uppercase tracking-wider">Dealer</div>' : ''}
+          
+          <!-- Bet Display -->
+          <div class="flex items-center gap-1 text-xs opacity-0 transition-opacity" id="bet-display-${player.id}">
+            <span class="text-white/70">Bet:</span>
+            <span class="text-neon-green font-bold" id="bet-amt-${player.id}">$0.00</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+        root.appendChild(this.container);
+        this.cardsContainer = this.container.querySelector(`#cards-${player.id}`)!;
+        this.chipsContainer = this.container.querySelector(`#bet-display-${player.id}`)!;
+        this.infoContainer = this.container.querySelector('.glass-panel')!;
+    }
+
+    update(player: Player, isActive: boolean = false) {
+        // Update chips display with color based on balance
+        const chipsEl = this.infoContainer.querySelector('.text-neon-green, .text-red-500') as HTMLElement;
+        if (chipsEl) {
+            chipsEl.textContent = `$${player.chips.toFixed(2)}`;
+            if (player.chips < 0) {
+                chipsEl.classList.remove('text-neon-green');
+                chipsEl.classList.add('text-red-500');
+            } else {
+                chipsEl.classList.remove('text-red-500');
+                chipsEl.classList.add('text-neon-green');
+            }
+        }
+
+        // Update bet display
+        const betDisplayEl = this.container.querySelector(`#bet-display-${player.id}`) as HTMLElement;
+        const betAmtEl = this.container.querySelector(`#bet-amt-${player.id}`);
+        if (betDisplayEl && betAmtEl) {
+            betAmtEl.textContent = `$${player.currentBet.toFixed(2)}`;
+            betDisplayEl.style.opacity = player.currentBet > 0 ? '1' : '0';
+        }
+
+        // Hand value update is now handled separately via updateHandValue() to sync with animations
+
+        // Turn indication
+
+        // Turn indication
+        if (isActive && player.status === 'playing') {
+            this.infoContainer.classList.add('active-turn');
+        } else {
+            this.infoContainer.classList.remove('active-turn');
+        }
+
+        // Highlight active player (Betting, Playing, or Insurance)
+        if (isActive) {
+            this.infoContainer.classList.add('border-neon-green', 'shadow-[0_0_15px_rgba(57,255,20,0.3)]');
+        } else {
+            this.infoContainer.classList.remove('border-neon-green', 'shadow-[0_0_15px_rgba(57,255,20,0.3)]');
+        }
+
+        // Bust handling
+        const bustBadge = this.container.querySelector(`#bust-badge-${player.id}`) as HTMLElement;
+        if (player.status === 'bust') {
+            this.infoContainer.classList.add('border-red-500');
+            if (bustBadge) {
+                bustBadge.style.opacity = '1';
+                bustBadge.style.transform = 'translateX(-50%) translateY(-5px)';
+            }
+            this.container.style.opacity = '0.5';
+        } else {
+            this.infoContainer.classList.remove('border-red-500');
+            if (bustBadge) {
+                bustBadge.style.opacity = '0';
+                bustBadge.style.transform = 'translateX(-50%) translateY(0)';
+            }
+            this.container.style.opacity = '1';
+
+            if (player.status === 'blackjack') {
+                this.infoContainer.classList.add('border-neon-pink');
+            }
+        }
+    }
+
+    updateHandValue(value: number, isSoft: boolean, softValue: number | undefined, status: string) {
+        const handValueEl = this.container.querySelector(`.hand-value`) as HTMLElement;
+        const handValueNumEl = handValueEl?.querySelector('.hand-value-num');
+
+        if (handValueEl && handValueNumEl) {
+            if (status === 'blackjack') {
+                handValueNumEl.textContent = 'BLACKJACK';
+                handValueNumEl.classList.add('text-neon-pink');
+                handValueNumEl.classList.remove('text-red-500');
+            } else if (isSoft && softValue !== undefined && value !== 21) {
+                handValueNumEl.textContent = `${softValue}/${value}`;
+                handValueNumEl.classList.remove('text-neon-pink');
+            } else {
+                handValueNumEl.textContent = value.toString();
+                handValueNumEl.classList.remove('text-neon-pink');
+            }
+            handValueEl.style.opacity = '1';
+
+            if (value > 21) {
+                handValueNumEl.classList.add('text-red-500');
+                cardEl.style.zIndex = `${this.cardsContainer.children.length}`;
+
+                const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
+                const suitSymbol = this.getSuitSymbol(card.suit);
+
+                cardEl.innerHTML = `
+        <div class="absolute top-1 left-1 text-sm font-bold ${isRed ? 'text-red-600' : 'text-black'}">${card.rank}</div>
+        <div class="text-2xl ${isRed ? 'text-red-600' : 'text-black'}">${suitSymbol}</div>
+        <div class="absolute bottom-1 right-1 text-sm font-bold ${isRed ? 'text-red-600' : 'text-black'} transform rotate-180">${card.rank}</div>
+        `;
+
+                this.cardsContainer.appendChild(cardEl);
+
+                const animation = cardEl.animate([
+                    { transform: 'translateY(-200px) scale(0.5)', opacity: 0 },
+                    { transform: `translateY(-${offset}px) translateX(${offset / 2}px) scale(1)`, opacity: 1 }
+                ], {
+                    duration: 500,
+                    easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                });
+
+                animation.onfinish = () => resolve();
+            });
+        }
+
+        clearCards() {
+            this.cardsContainer.innerHTML = '';
+            // Reset hand value display
+            const handValueEl = this.container.querySelector(`.hand-value`) as HTMLElement;
+            const handValueNumEl = handValueEl?.querySelector('.hand-value-num');
+            if (handValueEl && handValueNumEl) {
+                handValueEl.style.opacity = '0';
+                handValueNumEl.textContent = '0';
+                handValueNumEl.classList.remove('text-neon-pink', 'text-red-500');
+            }
+            // Reset bust badge
+            const bustBadge = this.container.querySelector(`.bust-badge`) as HTMLElement;
+            if (bustBadge) {
+                bustBadge.style.opacity = '0';
+            }
+            this.container.style.opacity = '1';
+            this.infoContainer.classList.remove('border-red-500', 'border-neon-pink');
+        }
+
+        getSuitSymbol(suit: string) {
+            switch (suit) {
+                case 'hearts': return '♥';
+                case 'diamonds': return '♦';
+                case 'clubs': return '♣';
+                case 'spades': return '♠';
+                default: return '';
+            }
+        }
+    }
