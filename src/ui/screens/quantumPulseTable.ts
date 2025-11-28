@@ -15,6 +15,7 @@ export class QuantumPulseTableScreen {
     private selectedChip: number = 0.10;
     private currentPlayerIndex: number = 0;
     private isProcessing: boolean = false;
+    private playerBets: Map<string, number> = new Map();
     private playerNames: Map<string, string> = new Map();
 
     constructor(root: HTMLElement, game: QuantumPulseGameManager, ledger: Ledger, onExit: () => void) {
@@ -134,15 +135,56 @@ export class QuantumPulseTableScreen {
         if (this.isProcessing) return;
 
         if (action === 'bet') {
-            this.selectedChip = payload;
-            this.highlightSelectedChip(payload);
+            if (payload === -9999) {
+                // Clear current player's bet
+                const nonDealerPlayers = this.game.getNonDealerPlayers();
+                const currentPlayer = nonDealerPlayers[this.currentPlayerIndex];
+                if (currentPlayer && this.playerBets.has(currentPlayer.id)) {
+                    const betAmount = this.playerBets.get(currentPlayer.id)!;
+                    currentPlayer.chips += betAmount;
+                    this.playerBets.delete(currentPlayer.id);
+                    this.updatePlayerIslands();
+                }
+            } else {
+                // Click chip to stack bet
+                this.placeBet(payload);
+            }
+        } else if (action === 'confirm-bet') {
+            // Confirm bet and advance to next player
+            this.confirmBet();
         } else if (action === 'deal') {
-            this.startGame();
+            // Start animation when all players are done
+            this.startAnimation();
         }
+    }
+
+    placeBet(chipValue: number) {
+        const nonDealerPlayers = this.game.getNonDealerPlayers();
+        const currentPlayer = nonDealerPlayers[this.currentPlayerIndex];
+        if (!currentPlayer) return;
+
+        // Accumulate bet
+        const currentBet = this.playerBets.get(currentPlayer.id) || 0;
+        this.playerBets.set(currentPlayer.id, currentBet + chipValue);
+
+        // Deduct from chips
+        currentPlayer.chips -= chipValue;
+
+        this.selectedChip = chipValue;
+        this.highlightSelectedChip(chipValue);
+        this.updatePlayerIslands();
+    }
+
+    confirmBet() {
+        // Advance to next player
+        this.currentPlayerIndex++;
+        this.updatePlayerIslands();
+        this.showCurrentPlayerControls();
     }
 
     startBettingPhase() {
         this.currentPlayerIndex = 0;
+        this.playerBets.clear();
         this.game.resetRound();
         this.updatePlayerIslands();
         this.showCurrentPlayerControls();
@@ -178,23 +220,17 @@ export class QuantumPulseTableScreen {
         });
     }
 
-    startGame() {
-        const nonDealerPlayers = this.game.getNonDealerPlayers();
-        const currentPlayer = nonDealerPlayers[this.currentPlayerIndex];
+    startAnimation() {
+        // Transfer accumulated bets to game manager
+        this.playerBets.forEach((amount, playerId) => {
+            if (amount > 0) {
+                this.game.placeBet(playerId, amount);
+            }
+        });
 
-        if (!currentPlayer || this.selectedChip <= 0) return;
-
-        // Place bet
-        if (!this.game.placeBet(currentPlayer.id, this.selectedChip)) return;
-
-        this.currentPlayerIndex++;
-        this.updatePlayerIslands();
-
-        if (this.currentPlayerIndex >= nonDealerPlayers.length) {
-            // All players bet - start animation
+        // Only run animation if at least one player has bet
+        if (this.playerBets.size > 0 && Array.from(this.playerBets.values()).some(v => v > 0)) {
             this.runAnimation();
-        } else {
-            this.showCurrentPlayerControls();
         }
     }
 
@@ -246,6 +282,8 @@ export class QuantumPulseTableScreen {
 
         container.innerHTML = nonDealerPlayers.map((player, index) => {
             const isCurrent = index === this.currentPlayerIndex && this.game.phase === 'BETTING';
+            const betAmount = this.playerBets.get(player.id) || 0;
+            const hasBet = betAmount > 0;
 
             return `
                 <div class="neon-glass-panel p-3 min-w-[180px] transition-all ${isCurrent ? 'ring-2 ring-neon-purple shadow-[0_0_30px_rgba(138,43,226,0.3)]' : ''}">
@@ -256,6 +294,22 @@ export class QuantumPulseTableScreen {
                         </div>
                         ${isCurrent ? '<span class="text-neon-purple text-xs font-bold">👉</span>' : ''}
                     </div>
+                    ${hasBet ? `
+                        <div class="bg-white/5 p-2 rounded border border-white/10">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-white/60">Bet:</span>
+                                <span class="font-mono font-bold text-neon-purple">$${betAmount.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    ` : isCurrent ? `
+                        <div class="text-center text-xs text-neon-purple font-bold animate-pulse">
+                            Click chips...
+                        </div>
+                    ` : `
+                        <div class="text-center text-xs text-white/40">
+                            Waiting...
+                        </div>
+                    `}
                 </div>
             `;
         }).join('');
