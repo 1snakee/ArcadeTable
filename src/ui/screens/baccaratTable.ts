@@ -65,14 +65,14 @@ export class BaccaratTableScreen {
                     <!-- Banker Hand -->
                     <div class="flex flex-col items-center gap-4">
                         <h3 class="text-neon-pink font-bold tracking-widest text-sm uppercase">Banker</h3>
-                        <div id="banker-hand" class="flex items-center justify-center gap-[-40px] min-h-[144px]"></div>
+                        <div id="banker-hand" class="flex items-center justify-center -space-x-20 min-h-[144px]"></div>
                         <div id="banker-score" class="text-3xl font-black text-white opacity-0 transition-opacity">0</div>
                     </div>
 
                     <!-- Player Hand -->
                     <div class="flex flex-col items-center gap-4">
                         <h3 class="text-neon-blue font-bold tracking-widest text-sm uppercase">Player</h3>
-                        <div id="player-hand" class="flex items-center justify-center gap-[-40px] min-h-[144px]"></div>
+                        <div id="player-hand" class="flex items-center justify-center -space-x-20 min-h-[144px]"></div>
                         <div id="player-score" class="text-3xl font-black text-white opacity-0 transition-opacity">0</div>
                     </div>
                 </div>
@@ -168,15 +168,26 @@ export class BaccaratTableScreen {
 
         const menuModal = document.createElement('div');
         menuModal.id = 'menu-modal';
-        menuModal.className = 'absolute inset-0 bg-black/90 z-[60] hidden flex items-center justify-center backdrop-blur-sm';
+        menuModal.className = 'absolute inset-0 bg-black/90 z-[100] hidden flex items-center justify-center backdrop-blur-sm pointer-events-auto';
         menuModal.innerHTML = `
             <div class="neon-glass-panel-premium p-8 max-w-sm w-full mx-4 flex flex-col gap-6 animate-fade-in">
                 <h2 class="text-3xl font-bold text-white text-center mb-2 font-display" style="text-shadow: 0 0 20px rgba(0,191,255,0.5);">Menu</h2>
-                <button id="exit-btn" class="btn-neon-danger w-full py-3">Exit to Setup</button>
-                <button id="close-menu-btn" class="text-white/50 hover:text-neon-blue mt-2 text-sm uppercase tracking-widest transition-colors">Close</button>
+                <button id="baccarat-exit-btn" class="btn-neon-danger w-full py-3 cursor-pointer">Exit to Setup</button>
+                <button id="close-menu-btn" class="text-white/50 hover:text-neon-blue mt-2 text-sm uppercase tracking-widest transition-colors cursor-pointer">Close</button>
             </div>
         `;
-        this.container.querySelector('#game-layer')?.appendChild(menuModal);
+        this.container.appendChild(menuModal);
+
+        // Event Delegation
+        menuModal.addEventListener('click', (e) => {
+            const target = e.target as HTMLElement;
+
+            if (target.id === 'close-menu-btn') {
+                this.handleCloseMenu();
+            } else if (target.id === 'baccarat-exit-btn') {
+                this.handleExitBtn();
+            }
+        });
     }
 
     showMenu() {
@@ -187,20 +198,6 @@ export class BaccaratTableScreen {
         }
 
         menuModal.classList.remove('hidden');
-
-        // Attach listeners each time menu is shown (ensures they work)
-        const closeBtn = menuModal.querySelector('#close-menu-btn');
-        const exitBtn = menuModal.querySelector('#exit-btn');
-
-        if (closeBtn) {
-            closeBtn.removeEventListener('click', this.handleCloseMenu);
-            closeBtn.addEventListener('click', this.handleCloseMenu);
-        }
-
-        if (exitBtn) {
-            exitBtn.removeEventListener('click', this.handleExitBtn);
-            exitBtn.addEventListener('click', this.handleExitBtn);
-        }
     }
 
     handleCloseMenu = () => {
@@ -208,9 +205,7 @@ export class BaccaratTableScreen {
     }
 
     handleExitBtn = () => {
-        if (confirm("Exit to Setup? Debts will be preserved.")) {
-            this.onExit();
-        }
+        this.onExit();
     }
 
     showLedger() {
@@ -229,7 +224,7 @@ export class BaccaratTableScreen {
         }
 
         return `
-            <div class="grid gap-4">
+            < div class="grid gap-4" >
                 ${debts.map(debt => {
             const fromName = this.playerNames.get(debt.from) || debt.from;
             const toName = this.playerNames.get(debt.to) || debt.to;
@@ -248,9 +243,10 @@ export class BaccaratTableScreen {
                             $${debt.amount.toFixed(2)}
                         </div>
                     </div>
-                `}).join('')}
-            </div>
-        `;
+                `}).join('')
+            }
+        </div>
+            `;
     }
 
     hideLedger() {
@@ -277,6 +273,7 @@ export class BaccaratTableScreen {
                     currentPlayer.chips += bet.amount;
                     this.playerBets.delete(currentPlayer.id);
                     this.updatePlayerIslands();
+                    this.updateBettingChips();
                 }
             } else {
                 this.selectedChip = payload;
@@ -318,7 +315,10 @@ export class BaccaratTableScreen {
         this.game.phase = 'BETTING';
         this.isProcessing = false;
 
+        this.isProcessing = false;
+
         this.updatePlayerIslands();
+        this.updateBettingChips();
         this.showCurrentPlayerControls();
     }
 
@@ -364,7 +364,41 @@ export class BaccaratTableScreen {
         // Move to next player
         this.currentBettingPlayerIndex++;
         this.updatePlayerIslands();
+        this.updateBettingChips();
         this.showCurrentPlayerControls();
+    }
+
+    updateBettingChips() {
+        // Calculate totals per zone
+        const totals = {
+            PLAYER: 0,
+            BANKER: 0,
+            TIE: 0
+        };
+
+        this.playerBets.forEach(bet => {
+            if (totals[bet.betType] !== undefined) {
+                totals[bet.betType] += bet.amount;
+            }
+        });
+
+        // Update UI
+        Object.entries(totals).forEach(([type, amount]) => {
+            const zone = this.container.querySelector(`.bet - zone[data - type="${type}"]`);
+            const stack = zone?.querySelector('.chip-stack');
+
+            if (stack) {
+                if (amount > 0) {
+                    stack.innerHTML = `
+            < div class="neon-chip inline-flex items-center justify-center w-12 h-12 rounded-full font-bold text-white shadow-[0_0_20px_rgba(0,191,255,0.3)] transition-all backdrop-blur-sm border border-white/20 bg-gradient-to-br from-neon-blue/80 to-blue-600/80 text-xs" >
+                $${amount.toFixed(2)}
+        </div>
+            `;
+                } else {
+                    stack.innerHTML = '';
+                }
+            }
+        });
     }
 
     updatePlayerIslands() {
@@ -379,14 +413,14 @@ export class BaccaratTableScreen {
             const hasBet = bet !== undefined;
 
             return `
-                <div class="neon-glass-panel p-3 min-w-[180px] transition-all ${isCurrent ? 'ring-2 ring-neon-blue shadow-[0_0_30px_rgba(0,191,255,0.3)]' : ''}">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex-1">
-                            <div class="font-bold text-white text-sm">${player.name}</div>
-                            <div class="text-xs text-white/60">$${player.chips.toFixed(2)}</div>
-                        </div>
+            < div class="neon-glass-panel p-3 min-w-[180px] transition-all ${isCurrent ? 'ring-2 ring-neon-blue shadow-[0_0_30px_rgba(0,191,255,0.3)]' : ''}" >
+                <div class="flex items-center justify-between mb-2" >
+                    <div class="flex-1" >
+                        <div class="font-bold text-white text-sm" > ${player.name} </div>
+                            < div class="text-xs text-white/60" > $${player.chips.toFixed(2)} </div>
+                                </div>
                         ${isCurrent ? '<span class="text-neon-blue text-xs font-bold">👉</span>' : ''}
-                    </div>
+        </div>
                     ${hasBet ? `
                         <div class="bg-white/5 p-2 rounded border border-white/10">
                             <div class="flex items-center justify-between text-xs">
@@ -410,7 +444,7 @@ export class BaccaratTableScreen {
                             Waiting...
                         </div>
                     `}
-                </div>
+        </div>
             `;
         }).join('');
     }
@@ -471,12 +505,12 @@ export class BaccaratTableScreen {
         const suitSymbol = this.getSuitSymbol(card.suit);
 
         cardEl.innerHTML = `
-            <div class="absolute top-1 left-1 text-sm font-bold ${suitColor}">${card.rank}</div>
-            <div class="absolute top-1 left-5 text-sm ${suitColor}">${suitSymbol}</div>
-            <div class="text-3xl ${suitColor}">${suitSymbol}</div>
-            <div class="absolute bottom-1 right-1 text-sm font-bold ${suitColor} transform rotate-180">${card.rank}</div>
-            <div class="absolute bottom-1 right-5 text-sm ${suitColor} transform rotate-180">${suitSymbol}</div>
-        `;
+            < div class="absolute top-1 left-1 text-sm font-bold ${suitColor}" > ${card.rank} </div>
+                < div class="absolute top-1 left-5 text-sm ${suitColor}" > ${suitSymbol} </div>
+                    < div class="text-3xl ${suitColor}" > ${suitSymbol} </div>
+                        < div class="absolute bottom-1 right-1 text-sm font-bold ${suitColor} transform rotate-180" > ${card.rank} </div>
+                            < div class="absolute bottom-1 right-5 text-sm ${suitColor} transform rotate-180" > ${suitSymbol} </div>
+                                `;
 
         target.appendChild(cardEl);
         await Animations.dealCard(cardEl, 0, 0, target);
@@ -545,13 +579,13 @@ export class BaccaratTableScreen {
         const msg = document.createElement('div');
         msg.className = 'absolute inset-0 flex items-center justify-center z-50 animate-bounce-in pointer-events-none';
         msg.innerHTML = `
-            <div class="bg-black/80 backdrop-blur-xl border border-white/20 p-8 rounded-3xl text-center shadow-[0_0_50px_rgba(0,0,0,0.8)]">
-                <h2 class="text-4xl font-black text-white mb-2 tracking-widest">${result.winner} WINS</h2>
-                <div class="text-xl text-white/60">
-                    Player ${result.playerScore} - ${result.bankerScore} Banker
-                </div>
-            </div>
-        `;
+                                < div class="bg-black/80 backdrop-blur-xl border border-white/20 p-8 rounded-3xl text-center shadow-[0_0_50px_rgba(0,0,0,0.8)]" >
+                                    <h2 class="text-4xl font-black text-white mb-2 tracking-widest" > ${result.winner} WINS </h2>
+                                        < div class="text-xl text-white/60" >
+                                            Player ${result.playerScore} - ${result.bankerScore} Banker
+                                                </div>
+                                                </div>
+                                                    `;
         this.container.appendChild(msg);
 
         if (this.controls) {

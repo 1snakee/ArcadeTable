@@ -79,9 +79,7 @@ export class GameManager {
         const player = this.state.players.find(p => p.id === playerId);
         if (!player || player.isDealer) return;
         const insuranceCost = player.currentBet / 2;
-        if (player.chips >= insuranceCost) {
-            player.insuranceBet = insuranceCost;
-        }
+        player.insuranceBet = insuranceCost;
     }
 
     dealInitialCards() {
