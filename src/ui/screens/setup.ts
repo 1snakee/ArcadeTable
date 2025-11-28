@@ -1,6 +1,6 @@
 
 
-export type GameType = 'BLACKJACK' | 'BACCARAT' | 'QUANTUM_PULSE';
+export type GameType = 'BLACKJACK' | 'BACCARAT' | 'ROULETTE';
 
 
 export interface SetupConfig {
@@ -47,8 +47,8 @@ export class SetupScreen {
                         <button id="select-baccarat" class="game-select-btn px-5 py-2 text-sm rounded-full border border-white/20 bg-transparent text-white/60 font-bold transition-all hover:border-neon-pink hover:text-white hover:shadow-[0_0_15px_rgba(255,20,147,0.5)]">
                             BACCARAT
                         </button>
-                        <button id="select-quantum" class="game-select-btn px-5 py-2 text-sm rounded-full border border-white/20 bg-transparent text-white/60 font-bold transition-all hover:border-neon-purple hover:text-white hover:shadow-[0_0_15px_rgba(138,43,226,0.5)]">
-                            QUANTUM
+                        <button id="select-roulette" class="game-select-btn px-5 py-2 text-sm rounded-full border border-white/20 bg-transparent text-white/60 font-bold transition-all hover:border-red-500 hover:text-white hover:shadow-[0_0_15px_rgba(255,0,0,0.5)]">
+                            ROULETTE
                         </button>
                     </div>
                     
@@ -77,11 +77,11 @@ export class SetupScreen {
         // Game Selection Logic
         const btnBlackjack = document.getElementById('select-blackjack');
         const btnBaccarat = document.getElementById('select-baccarat');
-        const btnQuantum = document.getElementById('select-quantum');
+        const btnRoulette = document.getElementById('select-roulette');
 
         btnBlackjack?.addEventListener('click', () => this.selectGame('BLACKJACK'));
         btnBaccarat?.addEventListener('click', () => this.selectGame('BACCARAT'));
-        btnQuantum?.addEventListener('click', () => this.selectGame('QUANTUM_PULSE'));
+        btnRoulette?.addEventListener('click', () => this.selectGame('ROULETTE'));
 
         document.getElementById('add-player')?.addEventListener('click', () => {
             if (this.playerInputs.length < 5) {
@@ -98,7 +98,7 @@ export class SetupScreen {
         this.selectedGame = type;
         const btnBlackjack = document.getElementById('select-blackjack');
         const btnBaccarat = document.getElementById('select-baccarat');
-        const btnQuantum = document.getElementById('select-quantum');
+        const btnRoulette = document.getElementById('select-roulette');
 
         // Reset all buttons
         btnBlackjack?.classList.remove('active', 'border-neon-blue', 'bg-neon-blue/20');
@@ -107,8 +107,8 @@ export class SetupScreen {
         btnBaccarat?.classList.remove('active', 'border-neon-pink', 'bg-neon-pink/20');
         btnBaccarat?.classList.add('border-white/20', 'bg-transparent', 'text-white/60');
 
-        btnQuantum?.classList.remove('active', 'border-neon-purple', 'bg-neon-purple/20');
-        btnQuantum?.classList.add('border-white/20', 'bg-transparent', 'text-white/60');
+        btnRoulette?.classList.remove('active', 'border-red-500', 'bg-red-500/20');
+        btnRoulette?.classList.add('border-white/20', 'bg-transparent', 'text-white/60');
 
         // Activate selected button
         if (type === 'BLACKJACK') {
@@ -117,9 +117,9 @@ export class SetupScreen {
         } else if (type === 'BACCARAT') {
             btnBaccarat?.classList.add('active', 'border-neon-pink', 'bg-neon-pink/20', 'text-white');
             btnBaccarat?.classList.remove('border-white/20', 'bg-transparent', 'text-white/60');
-        } else if (type === 'QUANTUM_PULSE') {
-            btnQuantum?.classList.add('active', 'border-neon-purple', 'bg-neon-purple/20', 'text-white');
-            btnQuantum?.classList.remove('border-white/20', 'bg-transparent', 'text-white/60');
+        } else if (type === 'ROULETTE') {
+            btnRoulette?.classList.add('active', 'border-red-500', 'bg-red-500/20', 'text-white');
+            btnRoulette?.classList.remove('border-white/20', 'bg-transparent', 'text-white/60');
         }
     }
 

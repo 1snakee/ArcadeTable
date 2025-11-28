@@ -1,17 +1,17 @@
 import { GameManager } from '../logic/gameState';
 import { BaccaratGameManager } from '../logic/baccaratGameManager';
-import { QuantumPulseGameManager } from '../logic/quantumPulseGameManager';
+import { RouletteGameManager } from '../logic/rouletteGameManager';
 import { BackgroundManager } from './background';
 import { Ledger } from '../logic/ledger';
 import { SetupScreen, type SetupConfig } from './screens/setup';
 import { TableScreen } from './screens/table';
 import { BaccaratTableScreen } from './screens/baccaratTable';
-import { QuantumPulseTableScreen } from './screens/quantumPulseTable';
+import { RouletteTableScreen } from './screens/rouletteTable';
 
 export class UI {
     game: GameManager;
     baccaratGame: BaccaratGameManager;
-    quantumGame: QuantumPulseGameManager;
+    rouletteGame: RouletteGameManager;
     ledger: Ledger;
     app: HTMLElement;
     currentScreen: any = null;
@@ -22,7 +22,7 @@ export class UI {
         this.game = new GameManager();
         this.baccaratGame = new BaccaratGameManager();
         this.ledger = new Ledger();
-        this.quantumGame = new QuantumPulseGameManager(this.ledger);
+        this.rouletteGame = new RouletteGameManager(this.ledger);
         this.app = document.getElementById('app')!;
         this.showSetup();
     }
@@ -54,16 +54,16 @@ export class UI {
 
             this.baccaratGame.startGame();
             this.showBaccaratTable();
-        } else if (config.gameType === 'QUANTUM_PULSE') {
-            // Setup Quantum Pulse
-            this.quantumGame.players = [];
-            config.players.forEach(name => this.quantumGame.addPlayer(name));
+        } else if (config.gameType === 'ROULETTE') {
+            // Setup Roulette
+            this.rouletteGame.players = [];
+            config.players.forEach(name => this.rouletteGame.addPlayer(name));
 
             // Set Dealer
-            const playerIds = this.quantumGame.players.map(p => p.id);
-            this.quantumGame.setDealer(playerIds[config.dealerIndex] || playerIds[0]);
+            const playerIds = this.rouletteGame.players.map(p => p.id);
+            this.rouletteGame.setDealer(playerIds[config.dealerIndex] || playerIds[0]);
 
-            this.showQuantumPulseTable();
+            this.showRouletteTable();
         }
     }
 
@@ -79,10 +79,10 @@ export class UI {
         this.currentScreen = new BaccaratTableScreen(this.app, this.baccaratGame, this.ledger, () => this.showSetup());
     }
 
-    showQuantumPulseTable() {
+    showRouletteTable() {
         this.clearScreen();
         this.background.setMode('TABLE');
-        this.currentScreen = new QuantumPulseTableScreen(this.app, this.quantumGame, this.ledger, () => this.showSetup());
+        this.currentScreen = new RouletteTableScreen(this.app, this.rouletteGame, this.ledger, () => this.showSetup());
     }
 
     clearScreen() {
