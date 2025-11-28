@@ -35,13 +35,13 @@ export class BaccaratGameManager {
         });
     }
 
-    placeBet(playerId: string, type: BetType, amount: number) {
-        if (this.phase !== 'BETTING') return;
+    placeBet(playerId: string, type: BetType, amount: number): boolean {
+        if (this.phase !== 'BETTING') return false;
 
         const player = this.players.find(p => p.id === playerId);
-        if (!player) return;
+        if (!player) return false;
 
-        if (player.chips < amount) return;
+        // if (player.chips < amount) return false; // Allow debt
 
         let playerBets = this.bets.get(playerId);
         if (!playerBets) {
@@ -54,6 +54,7 @@ export class BaccaratGameManager {
         playerBets[type] = currentAmount + amount;
 
         player.chips -= amount;
+        return true;
     }
 
     clearBets(playerId: string) {
@@ -213,6 +214,15 @@ export class BaccaratGameManager {
                 player.chips += playerBets.TIE * 9; // 8:1 payout + original bet
             }
         });
+    }
+
+    setDealer(playerId: string) {
+        const player = this.players.find(p => p.id === playerId);
+        if (!player) return;
+
+        this.players.forEach(p => p.isDealer = false);
+        player.isDealer = true;
+        this.dealerId = player.id;
     }
 
     resetRound() {

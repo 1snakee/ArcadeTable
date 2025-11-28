@@ -7,7 +7,7 @@ export class Controls {
     this.onAction = onAction;
   }
 
-  showBettingControls(balance: number) {
+  showBettingControls() {
     this.container.innerHTML = `
             <div class="neon-glass-panel-premium p-4 flex flex-row gap-4 items-center animate-fade-in mx-auto max-w-fit">
                 <div class="flex gap-2 items-center">

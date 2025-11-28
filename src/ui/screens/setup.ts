@@ -1,6 +1,7 @@
 
 
-export type GameType = 'BLACKJACK' | 'BACCARAT';
+export type GameType = 'BLACKJACK' | 'BACCARAT' | 'QUANTUM_PULSE';
+
 
 export interface SetupConfig {
     gameType: GameType;
@@ -39,12 +40,15 @@ export class SetupScreen {
                     </div>
 
                     <!-- Game Selector -->
-                    <div class="flex justify-center gap-4">
-                        <button id="select-blackjack" class="game-select-btn active px-6 py-2 rounded-full border border-neon-blue bg-neon-blue/20 text-white font-bold transition-all hover:shadow-[0_0_15px_rgba(0,191,255,0.5)]">
+                    <div class="flex justify-center gap-3">
+                        <button id="select-blackjack" class="game-select-btn active px-5 py-2 text-sm rounded-full border border-neon-blue bg-neon-blue/20 text-white font-bold transition-all hover:shadow-[0_0_15px_rgba(0,191,255,0.5)]">
                             BLACKJACK
                         </button>
-                        <button id="select-baccarat" class="game-select-btn px-6 py-2 rounded-full border border-white/20 bg-transparent text-white/60 font-bold transition-all hover:border-neon-pink hover:text-white hover:shadow-[0_0_15px_rgba(255,20,147,0.5)]">
+                        <button id="select-baccarat" class="game-select-btn px-5 py-2 text-sm rounded-full border border-white/20 bg-transparent text-white/60 font-bold transition-all hover:border-neon-pink hover:text-white hover:shadow-[0_0_15px_rgba(255,20,147,0.5)]">
                             BACCARAT
+                        </button>
+                        <button id="select-quantum" class="game-select-btn px-5 py-2 text-sm rounded-full border border-white/20 bg-transparent text-white/60 font-bold transition-all hover:border-neon-purple hover:text-white hover:shadow-[0_0_15px_rgba(138,43,226,0.5)]">
+                            QUANTUM
                         </button>
                     </div>
                     
@@ -73,9 +77,11 @@ export class SetupScreen {
         // Game Selection Logic
         const btnBlackjack = document.getElementById('select-blackjack');
         const btnBaccarat = document.getElementById('select-baccarat');
+        const btnQuantum = document.getElementById('select-quantum');
 
         btnBlackjack?.addEventListener('click', () => this.selectGame('BLACKJACK'));
         btnBaccarat?.addEventListener('click', () => this.selectGame('BACCARAT'));
+        btnQuantum?.addEventListener('click', () => this.selectGame('QUANTUM_PULSE'));
 
         document.getElementById('add-player')?.addEventListener('click', () => {
             if (this.playerInputs.length < 5) {
@@ -92,19 +98,28 @@ export class SetupScreen {
         this.selectedGame = type;
         const btnBlackjack = document.getElementById('select-blackjack');
         const btnBaccarat = document.getElementById('select-baccarat');
+        const btnQuantum = document.getElementById('select-quantum');
 
+        // Reset all buttons
+        btnBlackjack?.classList.remove('active', 'border-neon-blue', 'bg-neon-blue/20');
+        btnBlackjack?.classList.add('border-white/20', 'bg-transparent', 'text-white/60');
+
+        btnBaccarat?.classList.remove('active', 'border-neon-pink', 'bg-neon-pink/20');
+        btnBaccarat?.classList.add('border-white/20', 'bg-transparent', 'text-white/60');
+
+        btnQuantum?.classList.remove('active', 'border-neon-purple', 'bg-neon-purple/20');
+        btnQuantum?.classList.add('border-white/20', 'bg-transparent', 'text-white/60');
+
+        // Activate selected button
         if (type === 'BLACKJACK') {
             btnBlackjack?.classList.add('active', 'border-neon-blue', 'bg-neon-blue/20', 'text-white');
             btnBlackjack?.classList.remove('border-white/20', 'bg-transparent', 'text-white/60');
-
-            btnBaccarat?.classList.remove('active', 'border-neon-pink', 'bg-neon-pink/20', 'text-white');
-            btnBaccarat?.classList.add('border-white/20', 'bg-transparent', 'text-white/60');
-        } else {
+        } else if (type === 'BACCARAT') {
             btnBaccarat?.classList.add('active', 'border-neon-pink', 'bg-neon-pink/20', 'text-white');
             btnBaccarat?.classList.remove('border-white/20', 'bg-transparent', 'text-white/60');
-
-            btnBlackjack?.classList.remove('active', 'border-neon-blue', 'bg-neon-blue/20', 'text-white');
-            btnBlackjack?.classList.add('border-white/20', 'bg-transparent', 'text-white/60');
+        } else if (type === 'QUANTUM_PULSE') {
+            btnQuantum?.classList.add('active', 'border-neon-purple', 'bg-neon-purple/20', 'text-white');
+            btnQuantum?.classList.remove('border-white/20', 'bg-transparent', 'text-white/60');
         }
     }
 

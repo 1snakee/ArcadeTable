@@ -379,7 +379,7 @@ export class TableScreen {
             this.controls?.showDealerControls('BETTING');
             return;
         }
-        this.controls?.showBettingControls(player.chips);
+        this.controls?.showBettingControls();
     }
 
     nextBettingStep() {

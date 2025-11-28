@@ -183,7 +183,7 @@ export class PlayerSlot {
             // Create hand containers first (empty)
             const handContainers: { handDiv: HTMLElement, cardsDiv: HTMLElement }[] = [];
 
-            player.splitHands.forEach((hand, handIndex) => {
+            player.splitHands!.forEach((_hand: Card[], handIndex: number) => {
                 const handDiv = document.createElement('div');
                 const isActive = handIndex === player.currentSplitIndex;
 
